@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -431,12 +430,18 @@
         <main class="main-content">
             <!-- PAGE: Overview -->
             <div id="overviewPage" class="page">
-                <h2>Dashboard Overview</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h2 id="overviewTitle">Dashboard Overview</h2>
+                        <p style="font-size: 14px; color: #666;">Showing stats since: <span id="statsStartDateDisplay">the beginning</span>.</p>
+                    </div>
+                    <button id="toggleStatsPeriodBtn" class="main-button">Start New Period</button>
+                </div>
                 <div class="overview-grid">
                     <div class="stat-card"><h3>Total Goods in Stock</h3><p id="totalStockCount">0</p></div>
-                    <div class="stat-card"><h3>Total Units Sold</h3><p id="totalSoldCount">0</p></div>
-                    <div class="stat-card"><h3>Total Sales Value</h3><p id="totalSalesValue">₦0</p></div>
-                    <div class="stat-card profit" id="cumulativeProfitCard"><h3>Cumulative Net Profit</h3><p id="cumulativeProfit">₦0</p></div>
+                    <div class="stat-card"><h3 id="totalSoldCountHeader">Total Units Sold</h3><p id="totalSoldCount">0</p></div>
+                    <div class="stat-card"><h3 id="totalSalesValueHeader">Total Sales Value</h3><p id="totalSalesValue">₦0</p></div>
+                    <div class="stat-card profit" id="cumulativeProfitCard"><h3 id="cumulativeProfitHeader">Cumulative Net Profit</h3><p id="cumulativeProfit">₦0</p></div>
                 </div>
                 <div class="card" style="margin-top: 20px;">
                     <h3>Monthly Performance</h3>
@@ -662,19 +667,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let trendsChart = null;
     let salesCart = [];
     let sessionPopupsShown = false;
-    // DB version updated to support new sale.submitted field
     const DB_KEY = 'angelaStoresDB_v5';
 
     const DEFAULT_DB = {
         users: [],
         products: [],
-        sales: [], // sale objects will now have a 'submitted: boolean' field
+        sales: [],
         purchases: [],
         expenses: [],
         capital: {
             initial: 0,
-            transactions: [], // { id, date, type, amount, notes }
+            transactions: [],
         },
+        statsStartDate: null, // NEW: For dashboard period filtering
     };
 
     function loadDatabase() {
@@ -694,6 +699,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!db.capital || typeof db.capital !== 'object') {
             db.capital = structuredClone(DEFAULT_DB.capital);
         }
+        // Ensure statsStartDate exists for older DB versions
+        if (!db.hasOwnProperty('statsStartDate')) {
+            db.statsStartDate = null;
+        }
+
 
         if (db.users.length === 0) {
             db.users.push({ id: generateId(), username: 'admin', password: 'password', role: 'admin' });
@@ -786,6 +796,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 menuContainer.appendChild(link);
             }
         });
+
+        // --- Role-based button visibility ---
+        const toggleStatsBtn = document.getElementById('toggleStatsPeriodBtn');
+        if (toggleStatsBtn) {
+            toggleStatsBtn.style.display = ['admin', 'manager'].includes(currentUser.role) ? 'inline-block' : 'none';
+        }
         
         const defaultPage = currentUser.role === 'salesRep' ? 'posPage' : 'overviewPage';
         showPage(defaultPage);
@@ -839,24 +855,56 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function renderOverview() {
-        let totalStock = db.products.reduce((sum, p) => sum + p.quantityInStock, 0);
-        let totalSoldUnits = db.sales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
-        let totalSalesValue = db.sales.reduce((sum, s) => sum + s.grandTotal, 0);
+        const startDate = db.statsStartDate;
+        const statsBtn = document.getElementById('toggleStatsPeriodBtn');
+        const startDateDisplay = document.getElementById('statsStartDateDisplay');
+        const overviewTitle = document.getElementById('overviewTitle');
+        const soldCountHeader = document.getElementById('totalSoldCountHeader');
+        const salesValueHeader = document.getElementById('totalSalesValueHeader');
+        const profitHeader = document.getElementById('cumulativeProfitHeader');
+
+        let filteredSales = db.sales;
+        let filteredExpenses = db.expenses;
         
-        const totalCostOfGoodsSold = db.sales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
-        const totalExpenses = db.expenses.reduce((sum, e) => sum + e.amount, 0);
-        let cumulativeProfit = totalSalesValue - totalCostOfGoodsSold - totalExpenses;
+        if (startDate) {
+            filteredSales = db.sales.filter(s => new Date(s.dateTime) >= new Date(startDate));
+            filteredExpenses = db.expenses.filter(e => new Date(e.date) >= new Date(startDate));
+
+            statsBtn.textContent = 'Show All-Time Stats';
+            startDateDisplay.textContent = ` ${new Date(startDate).toLocaleDateString()}`;
+            overviewTitle.textContent = "Current Period Overview";
+            soldCountHeader.textContent = "Units Sold (Period)";
+            salesValueHeader.textContent = "Sales Value (Period)";
+            profitHeader.textContent = "Net Profit (Period)";
+        } else {
+            statsBtn.textContent = 'Start New Period';
+            startDateDisplay.textContent = 'the beginning';
+            overviewTitle.textContent = "Dashboard Overview";
+            soldCountHeader.textContent = "Total Units Sold";
+            salesValueHeader.textContent = "Total Sales Value";
+            profitHeader.textContent = "Cumulative Net Profit";
+        }
+
+        // Calculations now use the filtered data
+        let totalStock = db.products.reduce((sum, p) => sum + p.quantityInStock, 0); // Unchanged, always current
+        let totalSoldUnits = filteredSales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
+        let totalSalesValue = filteredSales.reduce((sum, s) => sum + s.grandTotal, 0);
+        
+        const totalCostOfGoodsSold = filteredSales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
+        const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+        let periodProfit = totalSalesValue - totalCostOfGoodsSold - totalExpenses;
         
         document.getElementById('totalStockCount').textContent = totalStock.toLocaleString();
         document.getElementById('totalSoldCount').textContent = totalSoldUnits.toLocaleString();
         document.getElementById('totalSalesValue').textContent = formatNaira(totalSalesValue);
+        
         const profitDisplay = document.getElementById('cumulativeProfit');
         const profitCard = document.getElementById('cumulativeProfitCard');
-        profitDisplay.textContent = formatNaira(cumulativeProfit);
-        profitCard.classList.toggle('loss', cumulativeProfit < 0);
-        profitCard.classList.toggle('profit', cumulativeProfit >= 0);
+        profitDisplay.textContent = formatNaira(periodProfit);
+        profitCard.classList.toggle('loss', periodProfit < 0);
+        profitCard.classList.toggle('profit', periodProfit >= 0);
 
-        renderTrendsChart();
+        renderTrendsChart(); // This chart still shows all-time monthly trends, which is often desired.
     }
 
     function renderTrendsChart() {
@@ -1147,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dateTime: now.toISOString(),
             userId: currentUser.id,
             customerName: customerName,
-            submitted: false, // NEW: Mark sale as not submitted
+            submitted: false, 
             items: structuredClone(salesCart.map(item => ({
                 productId: item.id, productName: item.name,
                 quantity: item.quantity, sellingPrice: item.sellingPrice,
@@ -1299,6 +1347,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // ================ PERFORMANCE POPUPS & OTHER MGMT ================
     // =================================================================
     
+    function toggleStatsPeriod() {
+        if (db.statsStartDate) {
+            // It's currently set, so clear it to show all-time stats
+            db.statsStartDate = null;
+            saveDatabase();
+            renderOverview();
+            alert("Dashboard now showing all-time statistics.");
+        } else {
+            // It's not set, so set it to now after confirmation
+            const confirmation = confirm("Are you sure you want to start a new reporting period?\n\nThis will reset the main dashboard stats, tracking new totals from this moment forward.\n\nAll historical data remains safe and accessible in reports.");
+            if (confirmation) {
+                db.statsStartDate = new Date().toISOString();
+                saveDatabase();
+                renderOverview();
+                alert("Dashboard stats have been reset for the new period.");
+            }
+        }
+    }
+
     function showPerformancePopups() {
         if (sessionPopupsShown) return;
 
@@ -1698,6 +1765,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // =================================================================
     // ===================== APPLICATION STARTUP =======================
     // =================================================================
+    document.getElementById('toggleStatsPeriodBtn').addEventListener('click', toggleStatsPeriod);
     loadDatabase();
     
 });
@@ -1706,4 +1774,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
-
