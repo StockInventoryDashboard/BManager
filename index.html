@@ -43,6 +43,22 @@
         .hidden {
             display: none !important;
         }
+        
+        /* --- Role-Based Visibility --- */
+        .role-salesRep .profit-display,
+        .role-manager .profit-display {
+            display: none !important;
+        }
+        
+        .role-salesRep .manager-only,
+        .role-salesRep .admin-only {
+            display: none !important;
+        }
+        
+        .role-manager .admin-only {
+            display: none !important;
+        }
+
 
         /* --- Login Screen --- */
         #loginScreen {
@@ -435,13 +451,13 @@
                         <h2 id="overviewTitle">Dashboard Overview</h2>
                         <p style="font-size: 14px; color: #666;">Showing stats since: <span id="statsStartDateDisplay">the beginning</span>.</p>
                     </div>
-                    <button id="toggleStatsPeriodBtn" class="main-button">Start New Period</button>
+                    <button id="toggleStatsPeriodBtn" class="main-button manager-only">Start New Period</button>
                 </div>
                 <div class="overview-grid">
                     <div class="stat-card"><h3>Total Goods in Stock</h3><p id="totalStockCount">0</p></div>
                     <div class="stat-card"><h3 id="totalSoldCountHeader">Total Units Sold</h3><p id="totalSoldCount">0</p></div>
                     <div class="stat-card"><h3 id="totalSalesValueHeader">Total Sales Value</h3><p id="totalSalesValue">₦0</p></div>
-                    <div class="stat-card profit" id="cumulativeProfitCard"><h3 id="cumulativeProfitHeader">Cumulative Net Profit</h3><p id="cumulativeProfit">₦0</p></div>
+                    <div class="stat-card profit profit-display" id="cumulativeProfitCard"><h3 id="cumulativeProfitHeader">Cumulative Net Profit</h3><p id="cumulativeProfit">₦0</p></div>
                 </div>
                 <div class="card" style="margin-top: 20px;">
                     <h3>Monthly Performance</h3>
@@ -497,10 +513,10 @@
                     <input type="text" id="salesLogSearchInput" placeholder="Search by Invoice # or Customer...">
                     <input type="date" id="salesLogDateFilter">
                     <button onclick="renderSalesLog()">Filter</button>
-                    <button id="submitMySalesBtn" class="main-button" onclick="submitMySales()" disabled>Submit My Sales to Capital</button>
+                    <button id="submitMySalesBtn" class="main-button" onclick="submitMySales()" disabled>Submit My Sales</button>
                 </div>
                 <div style="overflow-x:auto;"><table id="salesLogTable">
-                    <thead><tr><th>Invoice #</th><th>Date & Time</th><th>Items</th><th>Total</th><th>Profit</th><th>Customer</th><th>Sold By</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead></thead>
                     <tbody></tbody>
                 </table></div>
             </div>
@@ -522,7 +538,7 @@
                     <div class="stat-card"><h3>Total Revenue</h3><p id="plTotalRevenue">₦0</p></div>
                     <div class="stat-card"><h3>Cost of Goods Sold</h3><p id="plTotalCost">₦0</p></div>
                     <div class="stat-card"><h3>Operating Expenses</h3><p id="plTotalExpenses">₦0</p></div>
-                    <div class="stat-card" id="plNetProfitCard"><h3>Net Profit/Loss</h3><p id="plNetProfit">₦0</p></div>
+                    <div class="stat-card profit profit-display" id="plNetProfitCard"><h3>Net Profit/Loss</h3><p id="plNetProfit">₦0</p></div>
                 </div>
             </div>
 
@@ -553,7 +569,7 @@
             </div>
 
             <!-- PAGE: Capital Tracker (Admin Only) -->
-            <div id="capitalTrackerPage" class="page hidden">
+            <div id="capitalTrackerPage" class="page hidden admin-only">
                 <h2>Capital Tracker</h2>
                 <button id="addCapitalTransactionBtn" class="main-button">Add Capital Transaction</button>
                 <div class="overview-grid" style="margin-top: 20px;">
@@ -582,7 +598,7 @@
             </div>
             
             <!-- PAGE: User Management (Admin Only) -->
-            <div id="userManagementPage" class="page hidden">
+            <div id="userManagementPage" class="page hidden admin-only">
                 <h2>User Management</h2>
                 <button id="addUserBtn" class="main-button">Add New User</button>
                 <div style="overflow-x:auto;"><table id="userTable">
@@ -679,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
             initial: 0,
             transactions: [],
         },
-        statsStartDate: null, // NEW: For dashboard period filtering
+        statsStartDate: null,
     };
 
     function loadDatabase() {
@@ -699,11 +715,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!db.capital || typeof db.capital !== 'object') {
             db.capital = structuredClone(DEFAULT_DB.capital);
         }
-        // Ensure statsStartDate exists for older DB versions
         if (!db.hasOwnProperty('statsStartDate')) {
             db.statsStartDate = null;
         }
-
 
         if (db.users.length === 0) {
             db.users.push({ id: generateId(), username: 'admin', password: 'password', role: 'admin' });
@@ -740,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function login(user) {
         currentUser = user;
-        sessionPopupsShown = false; // Reset pop-up flag on new login
+        sessionPopupsShown = false; 
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('appContainer').classList.remove('hidden');
         document.getElementById('loginForm').reset();
@@ -748,7 +762,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setupUIForRole();
         renderAll();
 
-        // Show performance pop-ups for admin/manager roles
         if (['admin', 'manager'].includes(currentUser.role)) {
             showPerformancePopups();
         }
@@ -757,8 +770,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function logout() {
         currentUser = null;
         salesCart = [];
+        const appContainer = document.getElementById('appContainer');
+        appContainer.classList.remove('role-admin', 'role-manager', 'role-salesRep', 'role-auditor');
         document.getElementById('loginScreen').classList.remove('hidden');
-        document.getElementById('appContainer').classList.add('hidden');
+        appContainer.classList.add('hidden');
         document.getElementById('mainMenu').classList.add('hidden');
     }
 
@@ -768,6 +783,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function setupUIForRole() {
         document.getElementById('currentUserDisplay').textContent = `User: ${currentUser.username} (${currentUser.role})`;
+        
+        // Add role class to the container for CSS-based visibility
+        const appContainer = document.getElementById('appContainer');
+        appContainer.classList.remove('role-admin', 'role-manager', 'role-salesRep', 'role-auditor');
+        appContainer.classList.add(`role-${currentUser.role}`);
         
         const menuItems = {
             'Dashboard': { page: 'overviewPage', roles: ['admin', 'manager', 'auditor'] },
@@ -796,12 +816,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 menuContainer.appendChild(link);
             }
         });
-
-        // --- Role-based button visibility ---
-        const toggleStatsBtn = document.getElementById('toggleStatsPeriodBtn');
-        if (toggleStatsBtn) {
-            toggleStatsBtn.style.display = ['admin', 'manager'].includes(currentUser.role) ? 'inline-block' : 'none';
-        }
         
         const defaultPage = currentUser.role === 'salesRep' ? 'posPage' : 'overviewPage';
         showPage(defaultPage);
@@ -869,7 +883,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startDate) {
             filteredSales = db.sales.filter(s => new Date(s.dateTime) >= new Date(startDate));
             filteredExpenses = db.expenses.filter(e => new Date(e.date) >= new Date(startDate));
-
             statsBtn.textContent = 'Show All-Time Stats';
             startDateDisplay.textContent = ` ${new Date(startDate).toLocaleDateString()}`;
             overviewTitle.textContent = "Current Period Overview";
@@ -884,27 +897,28 @@ document.addEventListener('DOMContentLoaded', () => {
             salesValueHeader.textContent = "Total Sales Value";
             profitHeader.textContent = "Cumulative Net Profit";
         }
-
-        // Calculations now use the filtered data
-        let totalStock = db.products.reduce((sum, p) => sum + p.quantityInStock, 0); // Unchanged, always current
+        
+        let totalStock = db.products.reduce((sum, p) => sum + p.quantityInStock, 0);
         let totalSoldUnits = filteredSales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
         let totalSalesValue = filteredSales.reduce((sum, s) => sum + s.grandTotal, 0);
-        
-        const totalCostOfGoodsSold = filteredSales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
-        const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-        let periodProfit = totalSalesValue - totalCostOfGoodsSold - totalExpenses;
         
         document.getElementById('totalStockCount').textContent = totalStock.toLocaleString();
         document.getElementById('totalSoldCount').textContent = totalSoldUnits.toLocaleString();
         document.getElementById('totalSalesValue').textContent = formatNaira(totalSalesValue);
-        
-        const profitDisplay = document.getElementById('cumulativeProfit');
-        const profitCard = document.getElementById('cumulativeProfitCard');
-        profitDisplay.textContent = formatNaira(periodProfit);
-        profitCard.classList.toggle('loss', periodProfit < 0);
-        profitCard.classList.toggle('profit', periodProfit >= 0);
 
-        renderTrendsChart(); // This chart still shows all-time monthly trends, which is often desired.
+        if (!['salesRep', 'manager'].includes(currentUser.role)) {
+            const totalCostOfGoodsSold = filteredSales.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
+            const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+            let periodProfit = totalSalesValue - totalCostOfGoodsSold - totalExpenses;
+            
+            const profitDisplay = document.getElementById('cumulativeProfit');
+            const profitCard = document.getElementById('cumulativeProfitCard');
+            profitDisplay.textContent = formatNaira(periodProfit);
+            profitCard.classList.toggle('loss', periodProfit < 0);
+            profitCard.classList.toggle('profit', periodProfit >= 0);
+        }
+
+        renderTrendsChart();
     }
 
     function renderTrendsChart() {
@@ -924,22 +938,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const labels = [...new Set([...Object.keys(salesByMonth), ...Object.keys(profitByMonth)])].sort();
         const salesData = labels.map(label => salesByMonth[label] || 0);
-        const profitData = labels.map(label => profitByMonth[label] || 0);
+        
+        let datasets = [
+            { type: 'bar', label: 'Monthly Sales', data: salesData, backgroundColor: 'rgba(10, 147, 150, 0.6)', yAxisID: 'y' }
+        ];
+
+        // Only add profit data for admin and auditor roles
+        if (!['salesRep', 'manager'].includes(currentUser.role)) {
+            const profitData = labels.map(label => profitByMonth[label] || 0);
+            datasets.unshift({ type: 'line', label: 'Monthly Net Profit', data: profitData, borderColor: 'var(--green)', tension: 0.1, yAxisID: 'y1' });
+        }
+        
+        const scales = { y: { beginAtZero: true, position: 'left' } };
+        if (!['salesRep', 'manager'].includes(currentUser.role)) {
+             scales.y1 = { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } };
+        }
 
         if (trendsChart) trendsChart.destroy();
         trendsChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [
-                { type: 'line', label: 'Monthly Net Profit', data: profitData, borderColor: 'var(--green)', tension: 0.1, yAxisID: 'y1' },
-                { type: 'bar', label: 'Monthly Sales', data: salesData, backgroundColor: 'rgba(10, 147, 150, 0.6)', yAxisID: 'y' }
-            ]},
-            options: { scales: { y: { beginAtZero: true, position: 'left' }, y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false } } } }
+            data: { labels, datasets },
+            options: { scales }
         });
     }
 
     window.renderSalesLog = function() {
-        const tbody = document.getElementById('salesLogTable').querySelector('tbody');
+        const table = document.getElementById('salesLogTable');
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+        thead.innerHTML = '';
         tbody.innerHTML = '';
+
+        // Define headers based on role
+        const showProfit = !['salesRep', 'manager'].includes(currentUser.role);
+        let headers = ['Invoice #', 'Date & Time', 'Items', 'Total'];
+        if (showProfit) headers.push('Profit');
+        headers.push('Customer', 'Sold By', 'Status', 'Actions');
+
+        thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        
         const searchTerm = document.getElementById('salesLogSearchInput').value.toLowerCase();
         const dateFilter = document.getElementById('salesLogDateFilter').value;
 
@@ -954,25 +991,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? `<span style="color:var(--green); font-weight:bold;">✔ Submitted</span>` 
                 : `<span style="color:var(--yellow); font-weight:bold;">Pending</span>`;
             
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+            let rowHtml = `
                 <td>${s.invoiceNumber}</td>
                 <td>${new Date(s.dateTime).toLocaleString()}</td>
                 <td>${s.items.length}</td>
                 <td>${formatNaira(s.grandTotal)}</td>
-                <td>${formatNaira(s.totalProfit)}</td>
+            `;
+            if (showProfit) {
+                rowHtml += `<td>${formatNaira(s.totalProfit)}</td>`;
+            }
+            rowHtml += `
                 <td>${s.customerName}</td>
                 <td>${seller ? seller.username : 'N/A'}</td>
                 <td>${statusHtml}</td>
                 <td>
                     <button class="action-button edit-btn" onclick="printMultiItemReceipt('${s.invoiceNumber}')">Receipt</button>
-                    ${(currentUser.role === 'admin' || currentUser.role === 'manager') ? `<button class="action-button delete-btn" onclick="deleteSale('${s.invoiceNumber}')">Delete</button>` : ''}
+                    ${(currentUser.role === 'admin' || (currentUser.role === 'manager' && !s.submitted)) ? `<button class="action-button delete-btn" onclick="deleteSale('${s.invoiceNumber}')">Delete</button>` : ''}
                 </td>
             `;
-            tbody.appendChild(tr);
+            tbody.innerHTML += `<tr>${rowHtml}</tr>`;
         });
 
-        // Enable/disable the "Submit My Sales" button
         const pendingSalesForCurrentUser = db.sales.some(s => s.userId === currentUser.id && !s.submitted);
         document.getElementById('submitMySalesBtn').disabled = !pendingSalesForCurrentUser;
     }
@@ -989,17 +1028,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let revenue = salesInPeriod.reduce((sum, s) => sum + s.grandTotal, 0);
         let costOfGoods = salesInPeriod.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
         let totalExpenses = expensesInPeriod.reduce((sum, e) => sum + e.amount, 0);
-        const netProfit = revenue - costOfGoods - totalExpenses;
-
+        
         document.getElementById('plTotalRevenue').textContent = formatNaira(revenue);
         document.getElementById('plTotalCost').textContent = formatNaira(costOfGoods);
         document.getElementById('plTotalExpenses').textContent = formatNaira(totalExpenses);
         
-        const netProfitDisplay = document.getElementById('plNetProfit');
-        const netProfitCard = document.getElementById('plNetProfitCard');
-        netProfitDisplay.textContent = formatNaira(netProfit);
-        netProfitCard.classList.remove('profit', 'loss');
-        netProfitCard.classList.add(netProfit >= 0 ? 'profit' : 'loss');
+        if (!['salesRep', 'manager'].includes(currentUser.role)) {
+            const netProfit = revenue - costOfGoods - totalExpenses;
+            const netProfitDisplay = document.getElementById('plNetProfit');
+            const netProfitCard = document.getElementById('plNetProfitCard');
+            netProfitDisplay.textContent = formatNaira(netProfit);
+            netProfitCard.classList.remove('profit', 'loss');
+            netProfitCard.classList.add(netProfit >= 0 ? 'profit' : 'loss');
+        }
     }
 
     window.renderPurchaseHistory = function() {
@@ -1252,10 +1293,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const totalProfitToSubmit = salesToSubmit.reduce((sum, s) => sum + s.totalProfit, 0);
-        const confirmationMessage = `You are about to submit a total profit of ${formatNaira(totalProfitToSubmit)} from ${salesToSubmit.length} sale(s). This will be added to the company capital. This action cannot be undone.\n\nDo you want to proceed?`;
+        let confirmationMessage = '';
+        
+        // Admins and auditors see the financial impact.
+        if (['admin', 'auditor'].includes(currentUser.role)) {
+            confirmationMessage = `You are about to submit a total profit of ${formatNaira(totalProfitToSubmit)} from ${salesToSubmit.length} sale(s). This will be added to the company capital. This action cannot be undone.\n\nDo you want to proceed?`;
+        } else {
+            // Sales Reps and Managers only see the number of sales, not the value.
+            confirmationMessage = `You are about to submit ${salesToSubmit.length} pending sale(s). This action cannot be undone.\n\nDo you want to proceed?`;
+        }
         
         if (confirm(confirmationMessage)) {
-            // Create a single capital transaction for the sum of profits
+            // The profit is calculated and added regardless of the message shown.
             db.capital.transactions.push({
                 id: generateId(),
                 date: new Date().toISOString().split('T')[0],
@@ -1264,7 +1313,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 notes: `Profit deposit from sales by ${currentUser.username}`
             });
 
-            // Mark each sale as submitted
             salesToSubmit.forEach(sale => {
                 const saleInDb = db.sales.find(s => s.invoiceNumber === sale.invoiceNumber);
                 if (saleInDb) {
@@ -1273,8 +1321,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             saveDatabase();
-            alert('Sales submitted successfully and profit has been added to capital.');
-            renderAll(); // Re-render to update the UI
+            alert('Sales submitted successfully!');
+            renderAll();
         }
     }
 
@@ -1321,25 +1369,59 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.deleteSale = function(invoiceNumber) {
-        if(confirm('Are you sure you want to delete this sale? This will add the stock back and cannot be undone.')) {
-            const saleIndex = db.sales.findIndex(s => s.invoiceNumber === invoiceNumber);
-            if(saleIndex > -1) {
-                const sale = db.sales[saleIndex];
-                if (sale.submitted) {
-                    alert('Cannot delete a sale that has already been submitted to capital. Please contact an admin for assistance.');
-                    return;
+        const saleIndex = db.sales.findIndex(s => s.invoiceNumber === invoiceNumber);
+        if (saleIndex === -1) {
+            console.error("Sale not found for deletion:", invoiceNumber);
+            return;
+        }
+
+        const sale = db.sales[saleIndex];
+        let confirmationMessage = '';
+        let isSubmittedReversal = false;
+
+        if (sale.submitted && currentUser.role === 'admin') {
+            // Admin deleting a submitted sale (refund/reversal case)
+            confirmationMessage = `ADMIN ACTION:\nThis sale has been submitted and its profit (${formatNaira(sale.totalProfit)}) was added to capital.\n\nDeleting this will REVERSE the transaction by creating a capital withdrawal and returning stock.\n\nThis is for handling refunds or corrections. Are you sure you want to proceed?`;
+            isSubmittedReversal = true;
+        } else if (sale.submitted) {
+            // Non-admin trying to delete a submitted sale
+            alert('This sale has already been submitted and cannot be deleted. Please contact an administrator for assistance with returns or refunds.');
+            return;
+        } else {
+            // Deleting a pending sale
+            confirmationMessage = 'Are you sure you want to delete this pending sale? The stock will be returned to inventory. This action cannot be undone.';
+        }
+
+        if (confirm(confirmationMessage)) {
+            // Action confirmed, proceed with deletion logic
+
+            // 1. Return stock to inventory (common for both cases)
+            sale.items.forEach(item => {
+                const product = db.products.find(p => p.id === item.productId);
+                if (product) {
+                    product.quantityInStock += item.quantity;
+                    product.quantitySold -= item.quantity;
                 }
-                sale.items.forEach(item => {
-                    const product = db.products.find(p => p.id === item.productId);
-                    if (product) {
-                        product.quantityInStock += item.quantity;
-                        product.quantitySold -= item.quantity;
-                    }
+            });
+
+            // 2. Handle capital reversal if it was a submitted sale
+            if (isSubmittedReversal) {
+                db.capital.transactions.push({
+                    id: generateId(),
+                    date: new Date().toISOString().split('T')[0],
+                    type: 'withdrawal',
+                    amount: sale.totalProfit,
+                    notes: `Reversal/Refund for submitted Invoice #${sale.invoiceNumber}`
                 });
-                db.sales.splice(saleIndex, 1);
-                saveDatabase();
-                renderAll();
             }
+
+            // 3. Remove the sale record
+            db.sales.splice(saleIndex, 1);
+
+            // 4. Save and re-render
+            saveDatabase();
+            alert('Sale has been successfully deleted.');
+            renderAll();
         }
     }
     
@@ -1349,13 +1431,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function toggleStatsPeriod() {
         if (db.statsStartDate) {
-            // It's currently set, so clear it to show all-time stats
             db.statsStartDate = null;
             saveDatabase();
             renderOverview();
             alert("Dashboard now showing all-time statistics.");
         } else {
-            // It's not set, so set it to now after confirmation
             const confirmation = confirm("Are you sure you want to start a new reporting period?\n\nThis will reset the main dashboard stats, tracking new totals from this moment forward.\n\nAll historical data remains safe and accessible in reports.");
             if (confirmation) {
                 db.statsStartDate = new Date().toISOString();
@@ -1418,10 +1498,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${formatNaira(p.sellingPrice)}</td><td>${p.quantityInStock}</td><td>${p.quantitySold || 0}</td>
                     <td>${p.supplier || 'N/A'}</td>
                     <td>
-                        ${(currentUser.role === 'admin' || currentUser.role === 'manager') ? `
                         <button class="action-button edit-btn" onclick="editProduct('${p.id}')">Edit</button>
                         <button class="action-button delete-btn" onclick="deleteProduct('${p.id}')">Delete</button>
-                        ` : 'View Only'}
                     </td>
                 </tr>
             `;
@@ -1733,19 +1811,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const purchasesInPeriod = db.purchases.filter(p => p.date.startsWith(selectedMonth));
         const expensesInPeriod = db.expenses.filter(e => e.date.startsWith(selectedMonth));
 
+        doc.setFontSize(22); doc.setTextColor(0, 95, 115); doc.text(`Monthly Report for ${monthName}`, 14, 20);
+        
+        // --- Conditional Summary for PDF based on role ---
+        const showProfit = !['salesRep', 'manager'].includes(currentUser.role);
         const revenue = salesInPeriod.reduce((sum, s) => sum + s.grandTotal, 0);
         const cogs = salesInPeriod.reduce((sum, s) => sum + s.items.reduce((itemSum, i) => itemSum + (i.buyingPrice * i.quantity), 0), 0);
         const expenses = expensesInPeriod.reduce((sum, e) => sum + e.amount, 0);
-        const netProfit = revenue - cogs - expenses;
-
-        doc.setFontSize(22); doc.setTextColor(0, 95, 115); doc.text(`Monthly Report for ${monthName}`, 14, 20);
-        doc.autoTable({ startY: 30, theme: 'plain', body: [['Total Revenue (Sales)', formatNaira(revenue)], ['Cost of Goods Sold (COGS)', formatNaira(cogs)], ['Gross Profit (Revenue - COGS)', formatNaira(revenue - cogs)], ['Operating Expenses', formatNaira(expenses)], [{ content: 'Net Profit / Loss', styles: { fontStyle: 'bold' } }, { content: formatNaira(netProfit), styles: { fontStyle: 'bold', textColor: netProfit >= 0 ? [45, 154, 71] : [208, 0, 0] } }],], styles: { fontSize: 12, cellPadding: 4 }, columnStyles: { 0: { fontStyle: 'bold' } } });
+        let summaryBody = [
+            ['Total Revenue (Sales)', formatNaira(revenue)],
+            ['Cost of Goods Sold (COGS)', formatNaira(cogs)],
+            ['Operating Expenses', formatNaira(expenses)],
+        ];
+        if (showProfit) {
+            const netProfit = revenue - cogs - expenses;
+            summaryBody.splice(2, 0, ['Gross Profit (Revenue - COGS)', formatNaira(revenue - cogs)]);
+            summaryBody.push([{ content: 'Net Profit / Loss', styles: { fontStyle: 'bold' } }, { content: formatNaira(netProfit), styles: { fontStyle: 'bold', textColor: netProfit >= 0 ? [45, 154, 71] : [208, 0, 0] } }]);
+        }
+        doc.autoTable({ startY: 30, theme: 'plain', body: summaryBody, styles: { fontSize: 12, cellPadding: 4 }, columnStyles: { 0: { fontStyle: 'bold' } } });
         
         if (salesInPeriod.length > 0) {
             doc.addPage(); doc.setFontSize(18); doc.setTextColor(0, 95, 115); doc.text(`Sales Details - ${monthName}`, 14, 20);
-            const salesData = salesInPeriod.map(s => [s.invoiceNumber, new Date(s.dateTime).toLocaleString(), s.customerName, s.items.length, formatNaira(s.grandTotal), formatNaira(s.totalProfit)]);
-            doc.autoTable({ head: [['Invoice #', 'Date & Time', 'Customer', 'Items', 'Total', 'Profit']], body: salesData, startY: 25, ...pdfStyles });
+            
+            let salesHead = [['Invoice #', 'Date & Time', 'Customer', 'Items', 'Total']];
+            if(showProfit) salesHead[0].push('Profit');
+
+            const salesData = salesInPeriod.map(s => {
+                let row = [s.invoiceNumber, new Date(s.dateTime).toLocaleString(), s.customerName, s.items.length, formatNaira(s.grandTotal)];
+                if(showProfit) row.push(formatNaira(s.totalProfit));
+                return row;
+            });
+            doc.autoTable({ head: salesHead, body: salesData, startY: 25, ...pdfStyles });
         }
+
         if (purchasesInPeriod.length > 0) {
             doc.addPage(); doc.setFontSize(18); doc.setTextColor(0, 95, 115); doc.text(`Purchase Details - ${monthName}`, 14, 20);
             const purchaseData = purchasesInPeriod.map(p => {
