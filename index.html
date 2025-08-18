@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buisness Manager</title>
+    <title>Business Manager</title>
     <!-- Include Chart.js and jsPDF libraries from CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -306,8 +306,9 @@
 
         /* --- Modal Styles --- */
         .modal {
-            position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+            position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
+            background-color: rgba(0,0,0,0.6); /* Darker overlay for receipt */
         }
         .modal-content { background: var(--card-bg); padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; }
         .modal-close { position: absolute; top: 15px; right: 15px; font-size: 24px; font-weight: bold; cursor: pointer; color: #888; }
@@ -317,72 +318,133 @@
         .salary-field { position: relative; }
         .toggle-salary-visibility { position: absolute; right: 10px; top: 38px; cursor: pointer; user-select: none;}
         
-        /* --- REDESIGNED Receipt Modal --- */
-        .receipt-container {
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #333;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            justify-items: center;
-            align-items: center;
-            align-content: center;
-            justify-content: center;
+        /* --- NEW: Redesigned Receipt Ticket Styles --- */
+        #receiptModal .modal-content {
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            overflow: visible;
+            max-width: none;
+            width: 100%;
         }
-        .receipt-header {
+
+        #receiptModal .modal-close {
+            color: white; /* Make close button visible on dark overlay */
+            text-shadow: 0 1px 2px black;
+        }
+
+        .receipt-ticket {
+            width: 100%;
+            max-width: 380px; /* A good width for ticket-style receipts */
+            background: #fff;
+            margin: 20px auto;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-family: 'Courier New', Courier, monospace; /* Classic receipt font */
+            color: #222;
+        }
+
+        .receipt-ticket-header {
             text-align: center;
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 15px;
             margin-bottom: 20px;
         }
-        .receipt-header h2 {
-            font-size: 28px;
-            color: var(--primary-color);
+        .receipt-ticket-header h2 {
+            font-size: 24px;
             margin: 0;
-            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
         }
-        .receipt-info {
+        .receipt-ticket-header p {
+            font-size: 12px;
+            color: #555;
+            margin: 5px 0 0;
+        }
+
+        .receipt-ticket-info p {
+            font-size: 12px;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 20px;
-            font-size: 14px;
+            margin-bottom: 4px;
         }
-        .receipt-info div { line-height: 1.6; }
-        .receipt-info span { font-weight: 600; }
-        #receiptItemsTable {
+        .receipt-ticket-info p span {
+            font-weight: bold;
+        }
+
+        .receipt-separator {
+            border-top: 2px dashed #888;
+            margin: 15px 0;
+        }
+
+        .receipt-ticket-items table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
-        #receiptItemsTable th, #receiptItemsTable td {
-            padding: 10px;
+        .receipt-ticket-items th {
             text-align: left;
-            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #555;
+            font-weight: bold;
         }
-        #receiptItemsTable th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: var(--primary-color);
+        .receipt-ticket-items td {
+            padding: 8px 2px;
+            vertical-align: top;
         }
-        #receiptItemsTable .text-right { text-align: right; }
-        .receipt-total-section {
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 2px solid var(--primary-color);
+        .receipt-ticket-items .item-name {
+            font-weight: normal;
+        }
+        .receipt-ticket-items .item-details {
+            display: block;
+            font-size: 11px;
+            color: #666;
+        }
+        .receipt-ticket-items .text-right {
             text-align: right;
         }
-        .receipt-total-section p {
-            font-size: 22px;
+        
+        .receipt-ticket-totals {
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .receipt-ticket-totals p {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .receipt-ticket-totals p.total {
+            font-size: 20px;
             font-weight: bold;
-            color: var(--primary-color);
-            margin: 0;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #555;
         }
-        .receipt-footer {
+
+        .receipt-ticket-footer {
             text-align: center;
-            margin-top: 30px;
-            font-size: 13px;
-            color: #777;
+            margin-top: 20px;
         }
+        .receipt-ticket-footer p {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .barcode {
+            width: 80%;
+            height: 40px;
+            margin: 0 auto;
+            background-image: linear-gradient(to right, 
+                #333 1px, transparent 1px, transparent 2px, 
+                #333 2px, #333 4px, transparent 4px, transparent 6px,
+                #333 6px, #333 7px, transparent 7px, transparent 10px,
+                #333 10px, #333 11px, transparent 11px, transparent 12px,
+                #333 12px, #333 15px, transparent 15px, transparent 16px,
+                #333 16px, #333 19px, transparent 19px, transparent 20px
+            );
+            background-repeat: repeat-x;
+        }
+
         .receipt-buttons { text-align: center; margin-top: 20px; display: flex; gap: 10px; justify-content: center;}
         
         /* --- Performance Popup Modal --- */
@@ -391,18 +453,31 @@
         #performanceReportModal .modal-content li { margin-bottom: 8px; }
         #performanceReportModal .modal-content li span { font-weight: bold; }
 
-        /* --- PRINT STYLES --- */
+        /* --- UPDATED PRINT STYLES --- */
         @media print {
             body * { visibility: hidden; }
+            body { background: #fff; /* Ensure a white background for printing */ }
             #print-area, #print-area * { visibility: visible; }
-            #print-area { position: absolute; left: 10; top: 50; width: 50%; margin: 0; padding: 0; }
-            #receiptModal { position: static; box-shadow: none; background: none; }
-            #receiptModal .modal-content { box-shadow: none; border: none; padding: 0; max-width: 50%; max-height: 50%; overflow: visible; }
+            #print-area {
+                position: static;
+                display: flex;
+                justify-content: center; /* Center the receipt horizontally */
+                align-items: flex-start; /* Align to the top of the page */
+                width: 100%;
+                height: 100%;
+                padding-top: 2cm; /* Add some top margin */
+            }
+            #receiptModal {
+                position: static;
+                background: none;
+                overflow: visible;
+            }
+            .receipt-ticket {
+                box-shadow: none;
+                margin: 0;
+                border: 1px solid #ccc; /* Optional: add a border for cutting */
+            }
             .modal-close, .receipt-buttons { display: none; }
-            justify-items: center;
-            align-items: center;
-            align-content: center;
-            justify-content: center;
         }
     </style>
 </head>
@@ -410,7 +485,7 @@
 
     <!-- ======== LOGIN SCREEN ======== -->
     <div id="loginScreen">
-        <h1>Buisness Manager</h1>
+        <h1>Business Manager</h1>
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username</label>
@@ -429,7 +504,7 @@
     <div id="appContainer" class="hidden">
         <!-- Header -->
         <header class="main-header">
-            <h1>Buisness Manager</h1>
+            <h1>Business Manager</h1>
             <div class="header-controls">
                 <span id="currentUserDisplay"></span>
                 <button id="logoutButton">Logout</button>
@@ -459,6 +534,16 @@
                     <div class="stat-card"><h3 id="totalSalesValueHeader">Total Sales Value</h3><p id="totalSalesValue">₦0</p></div>
                     <div class="stat-card profit profit-display" id="cumulativeProfitCard"><h3 id="cumulativeProfitHeader">Cumulative Net Profit</h3><p id="cumulativeProfit">₦0</p></div>
                 </div>
+                
+                <!-- NEW: Low Stock Ticker -->
+                <div class="card hidden" id="lowStockTicker" style="margin-top: 20px; padding: 10px 20px; background-color: #fff3cd; border-left: 5px solid var(--yellow);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 24px;">⚠️</span>
+                        <div style="font-weight: bold; flex-shrink: 0;">Low Stock Alert:</div>
+                        <marquee behavior="scroll" direction="left" id="lowStockMarquee" style="width: 100%;"></marquee>
+                    </div>
+                </div>
+
                 <div class="card" style="margin-top: 20px;">
                     <h3>Monthly Performance</h3>
                     <canvas id="trendsChart"></canvas>
@@ -620,6 +705,21 @@
                         <p id="passwordChangeStatus" style="margin-top:10px;"></p>
                     </form>
                 </div>
+                <!-- Backup and Restore Card -->
+                <div class="card" style="margin-top: 20px;">
+                    <h3>Data Management</h3>
+                    <p style="margin-bottom: 15px; font-size: 14px; color: #666;">
+                        Backup your data to a file for safekeeping, or restore from a previously saved backup file. 
+                        <strong>Warning:</strong> Restoring will overwrite all current data.
+                    </p>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="backupDataBtn" class="main-button">Download Backup File</button>
+                        <div class="form-group" style="display:flex; align-items:center; gap: 10px; margin-bottom: 0;">
+                             <input type="file" id="restoreDataInput" accept=".json">
+                             <button id="restoreDataBtn" class="action-button delete-btn">Restore from File</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </main>
@@ -645,8 +745,11 @@
 
     <!-- Receipt Modal -->
     <div id="receiptModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 500px; padding: 0; background: none; border: none; overflow: visible;">
-            <div id="print-area"><div id="receiptModalContent" class="receipt-container"></div></div>
+        <div class="modal-content">
+            <div id="print-area">
+                <!-- Receipt content is injected here by JS -->
+                <div id="receiptContainer"></div>
+            </div>
             <div class="receipt-buttons">
                 <button class="main-button" onclick="printReceipt()">Print Receipt</button>
                 <button class="action-button delete-btn" onclick="closeModal('receiptModal')">Close</button>
@@ -728,6 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveDatabase() {
+        // This function acts as the "auto-save" by writing to persistent storage.
         localStorage.setItem(DB_KEY, JSON.stringify(db));
     }
 
@@ -919,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         renderTrendsChart();
+        renderLowStockTicker(); // Render the new ticker
     }
 
     function renderTrendsChart() {
@@ -1326,40 +1431,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // UPDATED: Function to generate the new receipt design
     window.printMultiItemReceipt = function(invoiceNumber) {
         const sale = db.sales.find(s => s.invoiceNumber === invoiceNumber);
         if (!sale) return;
         const seller = db.users.find(u => u.id === sale.userId);
 
-        const receiptContent = document.getElementById('receiptModalContent');
+        const receiptContainer = document.getElementById('receiptContainer');
         
         let itemsHtml = '';
         sale.items.forEach(item => {
             itemsHtml += `
                 <tr>
-                    <td>${item.productName}</td>
-                    <td class="text-right">${item.quantity}</td>
-                    <td class="text-right">${formatNaira(item.sellingPrice)}</td>
+                    <td class="item-name">
+                        ${item.productName}
+                        <span class="item-details">${item.quantity} x ${formatNaira(item.sellingPrice)}</span>
+                    </td>
                     <td class="text-right">${formatNaira(item.sellingPrice * item.quantity)}</td>
                 </tr>
             `;
         });
         
-        receiptContent.innerHTML = `
-            <div class="receipt-header"><h2>Buisness Manager</h2></div>
-            <div class="receipt-info">
-                <div><strong>To:</strong><br><span>${sale.customerName}</span></div>
-                <div><strong>Invoice #:</strong> <span>${sale.invoiceNumber}</span><br>
-                     <strong>Date:</strong> <span>${new Date(sale.dateTime).toLocaleString()}</span><br>
-                     <strong>Sold By:</strong> <span>${seller ? seller.username : 'N/A'}</span>
+        receiptContainer.innerHTML = `
+            <div class="receipt-ticket">
+                <div class="receipt-ticket-header">
+                    <h2>Business Manager</h2>
+                    <p>123 Business Avenue, Lagos, Nigeria</p>
+                </div>
+                <div class="receipt-ticket-info">
+                    <p>Invoice #: <span>${sale.invoiceNumber}</span></p>
+                    <p>Date: <span>${new Date(sale.dateTime).toLocaleString()}</span></p>
+                    <p>Cashier: <span>${seller ? seller.username : 'N/A'}</span></p>
+                    <p>Customer: <span>${sale.customerName}</span></p>
+                </div>
+                <div class="receipt-separator"></div>
+                <div class="receipt-ticket-items">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ITEM</th>
+                                <th class="text-right">TOTAL</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsHtml}</tbody>
+                    </table>
+                </div>
+                <div class="receipt-separator"></div>
+                <div class="receipt-ticket-totals">
+                    <p><span>Subtotal</span> <span class="text-right">${formatNaira(sale.grandTotal)}</span></p>
+                    <p><span>Discount</span> <span class="text-right">₦0.00</span></p>
+                    <p class="total"><span>TOTAL</span> <span class="text-right">${formatNaira(sale.grandTotal)}</span></p>
+                </div>
+                <div class="receipt-ticket-footer">
+                    <p>Thank you for your patronage!</p>
+                    <div class="barcode"></div>
                 </div>
             </div>
-            <table id="receiptItemsTable">
-                <thead><tr><th>Product</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead>
-                <tbody>${itemsHtml}</tbody>
-            </table>
-            <div class="receipt-total-section"><p>TOTAL: ${formatNaira(sale.grandTotal)}</p></div>
-            <div class="receipt-footer"><p>Thank you for your patronage!</p></div>
         `;
         showModal('receiptModal');
     }
@@ -1429,6 +1556,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // ================ PERFORMANCE POPUPS & OTHER MGMT ================
     // =================================================================
     
+    // Function to render the low stock scrolling ticker
+    function renderLowStockTicker() {
+        const tickerContainer = document.getElementById('lowStockTicker');
+        const marqueeEl = document.getElementById('lowStockMarquee');
+        
+        const lowStockProducts = db.products.filter(p => p.quantityInStock > 0 && p.quantityInStock <= p.lowStockThreshold);
+        const outOfStockProducts = db.products.filter(p => p.quantityInStock <= 0);
+        
+        const allAlerts = [...outOfStockProducts, ...lowStockProducts]; // Show out of stock first
+        
+        if (allAlerts.length > 0) {
+            const message = allAlerts.map(p => {
+                if (p.quantityInStock <= 0) {
+                    return `${p.name} (Out of Stock)`;
+                } else {
+                    return `${p.name} (${p.quantityInStock} left)`;
+                }
+            }).join(' &nbsp; | &nbsp; '); // Using &nbsp; for spacing inside marquee
+
+            marqueeEl.innerHTML = message;
+            tickerContainer.classList.remove('hidden');
+        } else {
+            tickerContainer.classList.add('hidden');
+        }
+    }
+
     function toggleStatsPeriod() {
         if (db.statsStartDate) {
             db.statsStartDate = null;
@@ -1761,7 +1914,82 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => statusEl.textContent = '', 3000);
     });
     
-    // --- PDF/CSV Download ---
+    // =================================================================
+    // =========== DATA BACKUP & RESTORE / PDF & CSV DOWNLOAD ==========
+    // =================================================================
+
+    // Function to handle data backup to a JSON file
+    function backupData() {
+        try {
+            const dataStr = JSON.stringify(db, null, 2); // Pretty-print JSON
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `BusinessManager_Backup_${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            alert('Backup file has been downloaded successfully!');
+        } catch (error) {
+            console.error('Failed to create backup:', error);
+            alert('An error occurred while creating the backup file.');
+        }
+    }
+
+    // Function to handle data restore from a JSON file
+    function restoreData() {
+        const fileInput = document.getElementById('restoreDataInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select a backup file to restore.');
+            return;
+        }
+        
+        const confirmation = confirm(
+            'WARNING: This will completely overwrite all existing data in the application with the contents of the selected file.\n\n' +
+            'This action CANNOT be undone.\n\n' +
+            'Are you absolutely sure you want to proceed?'
+        );
+
+        if (!confirmation) {
+            fileInput.value = ''; // Clear the file input
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const restoredDb = JSON.parse(event.target.result);
+                
+                // Basic validation to ensure it's a valid DB structure
+                if (restoredDb && restoredDb.users && restoredDb.products && restoredDb.sales) {
+                    db = restoredDb;
+                    saveDatabase(); // Persist the restored data
+                    alert('Data restored successfully. You will now be logged out to apply the changes.');
+                    logout(); // Force logout to re-initialize state safely
+                } else {
+                    throw new Error('Invalid backup file structure.');
+                }
+            } catch (error) {
+                console.error('Failed to restore data:', error);
+                alert('Error: The selected file is not a valid backup file or is corrupted.');
+            } finally {
+                fileInput.value = ''; // Clear the file input
+            }
+        };
+        
+        reader.onerror = function() {
+            alert('An error occurred while reading the file.');
+            fileInput.value = ''; // Clear the file input
+        };
+
+        reader.readAsText(file);
+    }
+
     const pdfStyles = {
         headStyles: { fillColor: [0, 95, 115], textColor: [255, 255, 255], fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [244, 244, 249] },
@@ -1780,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return [ p.date, product ? product.name : 'N/A (Deleted)', p.quantity, formatNaira(p.costPerItem), formatNaira(p.totalCost), p.supplier, p.paymentMode ];
         });
         doc.autoTable({ head: [['Date', 'Product', 'Qty', 'Cost/Item', 'Total Cost', 'Supplier', 'Payment']], body: tableData, startY: 25, ...pdfStyles });
-        doc.save('AngelaStores_PurchaseHistory.pdf');
+        doc.save('BusinessManager_PurchaseHistory.pdf');
     });
 
     document.getElementById('downloadPurchaseCsvBtn').addEventListener('click', () => {
@@ -1793,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", "AngelaStores_PurchaseHistory.csv");
+        link.setAttribute("download", "BusinessManager_PurchaseHistory.csv");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1857,13 +2085,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const expenseData = expensesInPeriod.map(e => [e.date, e.category, e.description, formatNaira(e.amount)]);
             doc.autoTable({ head: [['Date', 'Category', 'Description', 'Amount']], body: expenseData, startY: 25, ...pdfStyles });
         }
-        doc.save(`AngelaStores_Report_${selectedMonth}.pdf`);
+        doc.save(`BusinessManager_Report_${selectedMonth}.pdf`);
     });
 
     // =================================================================
     // ===================== APPLICATION STARTUP =======================
     // =================================================================
     document.getElementById('toggleStatsPeriodBtn').addEventListener('click', toggleStatsPeriod);
+    
+    // Add event listeners for backup and restore
+    document.getElementById('backupDataBtn').addEventListener('click', backupData);
+    document.getElementById('restoreDataBtn').addEventListener('click', restoreData);
+
     loadDatabase();
     
 });
